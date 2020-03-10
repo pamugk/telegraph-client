@@ -63,6 +63,26 @@ char* doRecieveStr(int sockfd) {
     return str;
 }
 
+struct Group* doRecieveGroup(int nsock) {
+    struct Group* group = (struct Group*) malloc(sizeof(struct Group));
+	group->id = doRecieveStr(nsock);
+	group->creatorId = doRecieveStr(nsock);
+	group->name = doRecieveStr(nsock);
+    recv(nsock, &group->countOfParticipants, sizeof(int), 0);
+    for (int i = 0; i < group->countOfParticipants; i += 1)
+        group->participants[i] = doRecieveStr(nsock);
+	return group;
+}
+
+struct GroupList* doRecieveGroups(int nsock) {
+    struct GroupList* groups = (struct GroupList*) malloc(sizeof(struct GroupList));
+    recv(nsock, &groups->count, sizeof(int), 0);
+    groups->list = (struct Group**)calloc(groups->count, sizeof(struct Group*));
+    for (int i = 0; i < groups->count; i += 1)
+        groups->list[i] = doRecieveGroup(nsock);
+	return groups;
+}
+
 struct Message* doRecieveMessage(int nsock, int recieveHeaderOnly) {
 	struct Message* message = (struct Message*) malloc(sizeof(struct Message));
 	message->id = doRecieveStr(nsock);
@@ -71,6 +91,15 @@ struct Message* doRecieveMessage(int nsock, int recieveHeaderOnly) {
     if (recieveHeaderOnly == 0)
 	    message->text = doRecieveStr(nsock);
 	return message;
+}
+
+struct MessageList* doRecieveMessages(int nsock) {
+    struct MessageList* messages = (struct MessageList*) malloc(sizeof(struct MessageList));
+    recv(nsock, &messages->count, sizeof(int), 0);
+    messages->list = (struct Message**)calloc(messages->count, sizeof(struct Message*));
+    for (int i = 0; i < messages->count; i += 1)
+        messages->list[i] = doRecieveMessage(nsock, 0);
+	return messages;
 }
 
 struct User* doRecieveUser(int sockfd) {
@@ -84,10 +113,29 @@ struct User* doRecieveUser(int sockfd) {
     return user;
 }
 
+struct UserList* doRecieveUsers(int nsock) {
+    struct UserList* users = (struct UserList*) malloc(sizeof(struct UserList));
+    recv(nsock, &users->count, sizeof(int), 0);
+    users->list = (struct User**)calloc(users->count, sizeof(struct User*));
+    for (int i = 0; i < users->count; i += 1)
+        users->list[i] = doRecieveUser(nsock);
+	return users;
+}
+
 int doSendStr(int nsock, const char* str) {
 	int size = strlen(str);
 	send(nsock, &size, sizeof(int), 0);
 	send(nsock, str, size * sizeof(char), 0);
+	return 0;
+}
+
+int doSendGroup(int nsock, struct Group* group) {
+	doSendStr(nsock, group->id);
+	doSendStr(nsock, group->creatorId);
+	doSendStr(nsock, group->name);
+    send(nsock, &group->countOfParticipants, sizeof(int), 0);
+    for (int i = 0; i < group->countOfParticipants; i += 1)
+        doSendStr(nsock, group->participants[i]);
 	return 0;
 }
 
@@ -111,15 +159,165 @@ int doSendUser(int nsock, struct User* user) {
 }
 #pragma endregion
 #pragma region Client functions
-struct User* login(char* userId) {
-    printf("Logging int.\n");
-    enum ServerOperations operation = LOGIN;
+int addContact(char* userId, char* contactId) {
+    printf("Adding contact.\n");
+    enum ServerOperations operation = ADD_CONTACT;
+    send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    doSendStr(sockfd, userId);
+    doSendStr(sockfd, contactId);
+    enum ServerResponses response;
+    int res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    if (response == SUCCESS) {
+        printf("Done.\n");
+        return 0;
+    }
+    printf("Failure\n");
+    return 1;
+}
+
+int addUserToGroup(char* groupId, char* userId) {
+    printf("Adding user to group.\n");
+    enum ServerOperations operation = ADD_USER_TO_GROUP;
+    send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    doSendStr(sockfd, groupId);
+    doSendStr(sockfd, userId);
+    enum ServerResponses response;
+    int res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    if (response == SUCCESS) {
+        printf("Done.\n");
+        return 0;
+    }
+    printf("Failure\n");
+    return 1;
+}
+
+int clearHistory(char* fromId, char* toId) {
+    printf("Clearing history of messages.\n");
+    enum ServerOperations operation = ADD_USER_TO_GROUP;
+    send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    doSendStr(sockfd, fromId);
+    doSendStr(sockfd, toId);
+    enum ServerResponses response;
+    int res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    if (response == SUCCESS) {
+        printf("Done.\n");
+        return 0;
+    }
+    printf("Failure\n");
+    return 1;
+}
+
+char* createGroup(struct Group* newGroup) {
+    printf("Asking for the creation of a new group.\n");
+    enum ServerOperations operation = CREATE_GROUP;
     int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
-    res = send(sockfd, userId, 37 * sizeof(char), 0);
+    doSendGroup(sockfd, newGroup);
     enum ServerResponses response;
     res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
-    struct User* user;
-    user->id = NULL;
+    char* createdGroupId = NULL;
+    if (response == SUCCESS) {
+        createdGroupId = doRecieveStr(sockfd);
+        printf("Done.\n");
+    }
+    else
+        printf("Failure.\n");
+    return createdGroupId;
+}
+
+struct UserList* getContacts(char* userId) {
+    printf("Asking for a contacts.\n");
+    enum ServerOperations operation = GET_CONTACTS;
+    int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    res = doSendStr(sockfd, userId);
+    enum ServerResponses response;
+    res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    struct UserList* contacts = NULL;
+    if (response == SUCCESS) {
+        contacts = doRecieveUsers(sockfd);
+        printf("Done.\n");
+    }
+    else
+        printf("Failure\n");
+    return contacts;
+}
+
+struct Group* getGroupInfo(char* groupId) {
+    printf("Fetching group.\n");
+    enum ServerOperations operation = GET_GROUP_INFO;
+    int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    res = doSendStr(sockfd, groupId);
+    enum ServerResponses response;
+    res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    struct Group* group = NULL;
+    if (response == SUCCESS) {
+        group = doRecieveGroup(sockfd);
+        printf("Done.\n");
+    }
+    else
+        printf("Failure\n");
+    return group;
+}
+
+struct MessageList* getMessages(char* fromId, char* toId) {
+    printf("Fetching messages.\n");
+    enum ServerOperations operation = GET_MESSAGES;
+    int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    res = doSendStr(sockfd, fromId);
+    res = doSendStr(sockfd, toId);
+    enum ServerResponses response;
+    res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    struct MessageList* messages = NULL;
+    if (response == SUCCESS) {
+        messages = doRecieveMessages(sockfd);
+        printf("Done.\n");
+    }
+    else
+        printf("Failure\n");
+    return messages;
+}
+
+struct User* getUser(char* userId) {
+    printf("Fetching user.\n");
+    enum ServerOperations operation = GET_USER;
+    int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    res = doSendStr(sockfd, userId);
+    enum ServerResponses response;
+    res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    struct User* user = NULL;
+    if (response == SUCCESS) {
+        user = doRecieveUser(sockfd);
+        printf("Done.\n");
+    }
+    else
+        printf("Failure\n");
+    return user;
+}
+
+struct GroupList* getUserGroups(char* userId) {
+    printf("Asking for a groups.\n");
+    enum ServerOperations operation = GET_USER_GROUPS;
+    int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    res = doSendStr(sockfd, userId);
+    enum ServerResponses response;
+    res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    struct GroupList* groups = NULL;
+    if (response == SUCCESS) {
+        groups = doRecieveGroups(sockfd);
+        printf("Done.\n");
+    }
+    else
+        printf("Failure\n");
+    return groups;
+}
+
+struct User* login(char* userId) {
+    printf("Logging in.\n");
+    enum ServerOperations operation = LOGIN;
+    int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    res = doSendStr(sockfd, userId);
+    enum ServerResponses response;
+    res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
+    struct User* user = NULL;
     if (response == SUCCESS) {
         user = doRecieveUser(sockfd);
         printf("Done.\n");

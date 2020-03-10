@@ -20,7 +20,8 @@ enum ServerOperations {
 
 enum ServerResponses {
     SUCCESS,
-    FAILURE
+    FAILURE,
+    RESTRICTED
 };
 
 #pragma region Data model

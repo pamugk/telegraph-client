@@ -4,12 +4,22 @@
 #include "serverDataModel.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 int sockfd;
 
-struct User* login(char* userId);
+int addContact(char*, char*);
+int addUserToGroup(char*, char*);
+int clearHistory(char*, char*);
+char* createGroup(struct Group*);
+struct UserList* getContacts(char*);
+struct Group* getGroupInfo(char*);
+struct MessageList* getMessages(char*, char*);
+struct User* getUser(char*);
+struct GroupList* getUserGroups(char*);
+struct User* login(char*);
 int logout();
 char* registerUser(struct User*);
 int removeGroup(char*);
