@@ -9,5 +9,5 @@
 
 int sockfd;
 
-struct User login(char* userId);
+struct User* login(char* userId);
 int logout();

@@ -35,7 +35,8 @@ int main() {
 		perror("connect error");
 		exit(1);
 	}
-    login("a2319689-c3c6-4b1f-b509-bdc314974c32");
+    struct User* user = login("a2319689-c3c6-4b1f-b509-bdc314974c32");
     logout();
+    userDestructor(user);
     return 0;
 }
