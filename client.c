@@ -22,7 +22,9 @@ struct User login(char* userId) {
     struct User user;
     user.id = NULL;
     if (response == SUCCESS) {
-        //res = recv(sockfd, &user, sizeof(struct User), 0);
+        int size = 0;
+        recv(sockfd, &size, sizeof(int), 0);
+        res = recv(sockfd, &user, size, 0);
         if (res == -1) {
             perror("recv");
             exit(1);
