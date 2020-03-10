@@ -11,3 +11,9 @@ int sockfd;
 
 struct User* login(char* userId);
 int logout();
+char* registerUser(struct User*);
+int removeGroup(char*);
+int removeMessage(struct Message*);
+int removeUser(char*);
+int resendMessage(struct Message*);
+char* sendMessage(struct Message*);
