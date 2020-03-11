@@ -36,7 +36,11 @@ int main() {
 		exit(1);
 	}
     struct User* user = login("a2319689-c3c6-4b1f-b509-bdc314974c32");
+    struct UserList* users = getContacts("a2319689-c3c6-4b1f-b509-bdc314974c32");
     logout();
-    userDestructor(user);
+    if (user != NULL)
+        userDestructor(user);
+    if (users != NULL)
+        userListDestructor(users);
     return 0;
 }

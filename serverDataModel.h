@@ -76,4 +76,3 @@ struct UserList {
 
 void userListDestructor(struct UserList* userList);
 #pragma endregion
-#pragma endregion

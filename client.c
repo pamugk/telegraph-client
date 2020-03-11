@@ -8,14 +8,12 @@ void groupDestructor(struct Group* group) {
     for (int i = 0; i < group->countOfParticipants; i += 1)
         free(group->participants[i]);
     free(group->participants);
-    free(group);
 }
 
 void groupListDestructor(struct GroupList* groupList) {
     for (int i = 0; i < groupList->count; i += 1)
         groupDestructor(groupList->list[i]);
     free(groupList->list);
-    free(groupList);
 }
 
 void messageDestructor(struct Message* message) {
@@ -25,14 +23,12 @@ void messageDestructor(struct Message* message) {
     free(message->fromId);
     if (message->text != NULL)
         free(message->text);
-    free(message);
 }
 
 void messageListDestructor(struct MessageList* messageList) {
     for (int i = 0; i < messageList->count; i += 1)
         messageDestructor(messageList->list[i]);
     free(messageList->list);
-    free(messageList);
 }
 
 void userDestructor(struct User* user) {
@@ -44,22 +40,25 @@ void userDestructor(struct User* user) {
     free(user->surname);
     if (user->biography != NULL)
         free(user->biography);
-    free(user);
 }
 
 void userListDestructor(struct UserList* userList) {
     for (int i = 0; i < userList->count; i += 1)
         userDestructor(userList->list[i]);
     free(userList->list);
-    free(userList);
 }
 #pragma endregion
 #pragma region Auxillary functions
 char* doRecieveStr(int sockfd) {
-    int size = 0;
-    recv(sockfd, &size, sizeof(int), 0);
-    char* str = calloc(size, sizeof(char));
-    recv(sockfd, str, size * sizeof(char), 0);
+    int8_t isNull;
+	int res = recv(sockfd, &isNull, sizeof(int8_t), 0);
+    char* str = NULL;
+	if (isNull != 0) {
+        size_t size;
+        recv(sockfd, &size, sizeof(size_t), 0);
+        str = calloc(size, sizeof(char));
+        recv(sockfd, str, size * sizeof(char), 0);
+	}
     return str;
 }
 
@@ -115,17 +114,30 @@ struct User* doRecieveUser(int sockfd) {
 
 struct UserList* doRecieveUsers(int nsock) {
     struct UserList* users = (struct UserList*) malloc(sizeof(struct UserList));
-    recv(nsock, &users->count, sizeof(int), 0);
+    recv(nsock, &(users->count), sizeof(int), 0);
     users->list = (struct User**)calloc(users->count, sizeof(struct User*));
     for (int i = 0; i < users->count; i += 1)
         users->list[i] = doRecieveUser(nsock);
 	return users;
 }
 
-int doSendStr(int nsock, const char* str) {
-	int size = strlen(str);
-	send(nsock, &size, sizeof(int), 0);
-	send(nsock, str, size * sizeof(char), 0);
+int doSendStr(int nsock, char* str) {
+    int res = 0;
+    int8_t isNull = str == NULL ? 0 : 1;
+	res = send(nsock, &isNull, sizeof(int8_t), 0);
+	if (isNull != 0) {
+		size_t size = strlen(str) + 1;
+		res = send(nsock, &size, sizeof(size_t), 0);
+        if (res == -1){
+            perror("send");
+            return 1;
+        }
+		res = send(nsock, str, size * sizeof(char), 0);
+        if (res == -1){
+            perror("send");
+            return 1;
+        }
+	}
 	return 0;
 }
 
@@ -225,13 +237,21 @@ char* createGroup(struct Group* newGroup) {
 }
 
 struct UserList* getContacts(char* userId) {
-    printf("Asking for a contacts.\n");
+    printf("Asking for the contacts.\n");
     enum ServerOperations operation = GET_CONTACTS;
     int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
+    if (res == -1) {
+        perror("send");
+        exit(1);
+    }
     res = doSendStr(sockfd, userId);
     enum ServerResponses response;
     res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
     struct UserList* contacts = NULL;
+    if (res == -1) {
+        perror("recv");
+        return contacts;
+    }
     if (response == SUCCESS) {
         contacts = doRecieveUsers(sockfd);
         printf("Done.\n");
@@ -319,7 +339,7 @@ struct User* login(char* userId) {
     res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
     struct User* user = NULL;
     if (response == SUCCESS) {
-        user = doRecieveUser(sockfd);
+    user = doRecieveUser(sockfd);
         printf("Done.\n");
     }
     else
