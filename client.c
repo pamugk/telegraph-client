@@ -171,11 +171,10 @@ int doSendUser(int nsock, struct User* user) {
 }
 #pragma endregion
 #pragma region Client functions
-int addContact(char* userId, char* contactId) {
+int addContact(char* contactId) {
     printf("Adding contact.\n");
     enum ServerOperations operation = ADD_CONTACT;
     send(sockfd, &operation, sizeof(enum ServerOperations), 0);
-    doSendStr(sockfd, userId);
     doSendStr(sockfd, contactId);
     enum ServerResponses response;
     int res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
@@ -203,12 +202,11 @@ int addUserToGroup(char* groupId, char* userId) {
     return 1;
 }
 
-int clearHistory(char* fromId, char* toId) {
+int clearHistory(char* fromId) {
     printf("Clearing history of messages.\n");
     enum ServerOperations operation = ADD_USER_TO_GROUP;
     send(sockfd, &operation, sizeof(enum ServerOperations), 0);
     doSendStr(sockfd, fromId);
-    doSendStr(sockfd, toId);
     enum ServerResponses response;
     int res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
     if (response == SUCCESS) {
@@ -278,12 +276,11 @@ struct Group* getGroupInfo(char* groupId) {
     return group;
 }
 
-struct MessageList* getMessages(char* fromId, char* toId) {
+struct MessageList* getMessages(char* fromId) {
     printf("Fetching messages.\n");
     enum ServerOperations operation = GET_MESSAGES;
     int res = send(sockfd, &operation, sizeof(enum ServerOperations), 0);
     res = doSendStr(sockfd, fromId);
-    res = doSendStr(sockfd, toId);
     enum ServerResponses response;
     res = recv(sockfd, &response, sizeof(enum ServerResponses), 0);
     struct MessageList* messages = NULL;

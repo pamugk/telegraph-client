@@ -10,13 +10,13 @@
 
 int sockfd;
 
-int addContact(char*, char*);
+int addContact(char*);
 int addUserToGroup(char*, char*);
-int clearHistory(char*, char*);
+int clearHistory(char*);
 char* createGroup(struct Group*);
-struct UserList* getContacts(char*);
+struct UserList* getContacts();
 struct Group* getGroupInfo(char*);
-struct MessageList* getMessages(char*, char*);
+struct MessageList* getMessages(char*);
 struct User* getUser(char*);
 struct GroupList* getUserGroups(char*);
 struct User* login(char*);
@@ -24,6 +24,6 @@ int logout();
 char* registerUser(struct User*);
 int removeGroup(char*);
 int removeMessage(struct Message*);
-int removeUser(char*);
+int removeUser();
 int resendMessage(struct Message*);
 char* sendMessage(struct Message*);
