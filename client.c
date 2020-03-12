@@ -441,7 +441,8 @@ char* sendMessage(struct Message* newMessage) {
         printf("Done.\n");
         return messageId;
     }
-    printf("Failure.\n");
+    else
+        printf("Failure.\n");
     return NULL;
 }
 #pragma endregion

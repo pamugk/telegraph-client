@@ -36,11 +36,15 @@ int main() {
 		exit(1);
 	}
     struct User* user = login("a2319689-c3c6-4b1f-b509-bdc314974c32");
-    struct UserList* users = getContacts("a2319689-c3c6-4b1f-b509-bdc314974c32");
+    struct Message* message = (struct Message*)malloc(sizeof(struct Message));
+    message->fromId = "a2319689-c3c6-4b1f-b509-bdc314974c32";
+    message->toId = "22dcee36-4882-4406-b9b6-8ca440cfed7a";
+    message->text = "QQ";
+    message->id = sendMessage(message);
     logout();
     if (user != NULL)
         userDestructor(user);
-    if (users != NULL)
-        userListDestructor(users);
+    if (message != NULL)
+        messageDestructor(message);
     return 0;
 }
