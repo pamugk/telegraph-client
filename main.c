@@ -56,8 +56,7 @@ int main() {
             message->toId = "22dcee36-4882-4406-b9b6-8ca440cfed7a";
             message->text = "QQ";
             message->id = sendMessage(message);
-            int c;
-            wait(&c);
+            logout();
             if (user != NULL)
                 userDestructor(user);
             if (message != NULL)
