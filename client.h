@@ -9,7 +9,6 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/socket.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <wait.h>
 #include <unistd.h>
